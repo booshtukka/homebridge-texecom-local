@@ -1,0 +1,22 @@
+{
+  "name": "homebridge-texecom-local",
+  "displayName": "Homebridge Texecom (local fork)",
+  "version": "4.4.1-local.1",
+  "description": "Fork of homebridge-texecom-full 4.4.1-beta.1: safe UDL login/logout, ASTATUS state and heartbeat, exit/entry handling, failure alerts",
+  "private": true,
+  "main": "plugin/index.js",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin",
+    "texecom"
+  ],
+  "engines": {
+    "homebridge": "^1.6.0 || ^2.0.0",
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "type": "commonjs",
+  "dependencies": {}
+}

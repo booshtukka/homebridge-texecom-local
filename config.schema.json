@@ -1,0 +1,365 @@
+{
+    "title": "Texecom (local fork)",
+    "pluginAlias": "TexecomLocal",
+    "pluginType": "platform",
+    "headerDisplay": "Fork of homebridge-texecom-full 4.4.1-beta.1: safe UDL login/logout, ASTATUS state + heartbeat, exit/entry handling, failure alerts. IP (ComIP) only.",
+    "singular": true,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "title": "Name",
+                "required": true,
+                "default": "Texecom",
+                "description": "You shouldn't need to change this."
+            },
+            "ip_address": {
+                "type": "string",
+                "format": "ipv4",
+                "title": "IP Address"
+            },
+            "ip_port": {
+                "type": "integer",
+                "default": 10001,
+                "title": "IP Port"
+            },
+            "baud_rate": {
+                "type": "integer",
+                "enum": [
+                    9600,
+                    19200,
+                    38400,
+                    57600,
+                    115200
+                ],
+                "title": "Baud Rate"
+            },
+            "udl": {
+                "type": "string",
+                "pattern": "^[0-9]{4,8}$",
+                "title": "UDL",
+                "description": "The UDL code on the panel. Needed to arm and disarm from HomeKit, and for the panel clock sync."
+            },
+            "remote_users": {
+                "type": "array",
+                "title": "Remote / Keyfob Users",
+                "description": "Panel user numbers that arm using a remote or keyfob. An arm by one of these users is always shown as Away in HomeKit.",
+                "items": {
+                    "type": "integer",
+                    "title": "User Number"
+                }
+            },
+            "app_users": {
+                "type": "array",
+                "title": "App Users",
+                "description": "Panel user numbers the panel reports when an area is armed from this plugin. An arm by one of these users is shown as whatever was asked for in HomeKit.",
+                "items": {
+                    "type": "integer",
+                    "title": "User Number"
+                }
+            },
+            "default_arm_state": {
+                "type": "string",
+                "title": "Default Arm State",
+                "default": "away",
+                "description": "What to show in HomeKit when an area is armed by any other user, at a keypad for example. The panel does not report whether an arm was full or part, so this is a best guess.",
+                "enum": [
+                    "away",
+                    "night",
+                    "stay"
+                ]
+            },
+            "target_states": {
+                "type": "array",
+                "title": "Home App Arm Modes",
+                "description": "The modes offered in the Home app for every area. Off is always offered. Left empty, this fork offers Away and Off only (upstream offered every mode).",
+                "uniqueItems": true,
+                "items": {
+                    "type": "string",
+                    "enum": [
+                        "away",
+                        "home",
+                        "night",
+                        "off"
+                    ]
+                },
+                "default": [
+                    "away",
+                    "off"
+                ]
+            },
+            "zones": {
+                "type": "array",
+                "title": "Zones",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "title": "Zone Name"
+                        },
+                        "zone_number": {
+                            "type": "string",
+                            "title": "Zone Number"
+                        },
+                        "zone_type": {
+                            "type": "string",
+                            "enum": [
+                                "contact",
+                                "motion",
+                                "smoke",
+                                "carbonmonoxide"
+                            ],
+                            "title": "Zone Type"
+                        },
+                        "dwell": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "title": "Dwell Time"
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "zone_number",
+                        "zone_type",
+                        "dwell"
+                    ]
+                }
+            },
+            "areas": {
+                "type": "array",
+                "title": "Areas",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "title": "Area Name"
+                        },
+                        "area_number": {
+                            "type": "string",
+                            "title": "Area Number"
+                        },
+                        "area_type": {
+                            "type": "string",
+                            "enum": [
+                                "securitysystem"
+                            ],
+                            "title": "Area Type"
+                        },
+                        "dwell": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "title": "Dwell Time"
+                        },
+                        "zones": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            },
+                            "title": "Zones under Area"
+                        },
+                        "target_states": {
+                            "type": "array",
+                            "title": "Home App Arm Modes",
+                            "description": "The modes offered in the Home app for this one, if different from the setting above. Off is always offered.",
+                            "uniqueItems": true,
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "away",
+                                    "home",
+                                    "night",
+                                    "off"
+                                ]
+                            }
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "area_number",
+                        "area_type",
+                        "dwell"
+                    ]
+                }
+            },
+            "area_groups": {
+                "type": "array",
+                "title": "Combined Areas",
+                "description": "One accessory that arms or disarms several areas together. The panel takes them all in a single command.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "title": "Name"
+                        },
+                        "areas": {
+                            "type": "array",
+                            "title": "Areas",
+                            "description": "The area numbers to arm and disarm together, for example 1 and 2.",
+                            "items": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 8,
+                                "title": "Area Number"
+                            }
+                        },
+                        "dwell": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "title": "Dwell Time"
+                        },
+                        "target_states": {
+                            "type": "array",
+                            "title": "Home App Arm Modes",
+                            "description": "The modes offered in the Home app for this one, if different from the setting above. Off is always offered.",
+                            "uniqueItems": true,
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "away",
+                                    "home",
+                                    "night",
+                                    "off"
+                                ]
+                            }
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "areas"
+                    ]
+                }
+            },
+            "debug": {
+                "type": "boolean",
+                "title": "Debug",
+                "default": false
+            },
+            "away_arm_command": {
+                "type": "string",
+                "title": "Away arm command letter",
+                "default": "A",
+                "description": "Simple Protocol command letter sent for Away. A is the only documented full arm. Whether it runs an exit delay is set on the panel (System Config option 58, Remote Arming Timed/Instant), not here."
+            },
+            "stay_arm_command": {
+                "type": "string",
+                "title": "Home/Night arm command letter",
+                "default": "Y",
+                "description": "Y = part arm 1."
+            },
+            "login_retry": {
+                "type": "boolean",
+                "title": "Resend the login once if unanswered (as 4.4.0 does)",
+                "default": true,
+                "description": "The panel does not answer the first login after idle and answers the resend. Leave on."
+            },
+            "login_retry_after": {
+                "type": "number",
+                "title": "Seconds before the login is resent",
+                "default": 2
+            },
+            "login_timeout": {
+                "type": "number",
+                "title": "Login reply wait after the resend (s)",
+                "default": 6
+            },
+            "preflight_status": {
+                "type": "boolean",
+                "title": "Read ASTATUS just before logging in (refuse if a session is open)",
+                "default": true
+            },
+            "command_timeout": {
+                "type": "number",
+                "title": "Command reply wait (s)",
+                "default": 5
+            },
+            "login_cooldown": {
+                "type": "number",
+                "title": "Minimum seconds between logins",
+                "default": 60,
+                "description": "Taps inside this window fail straight away in HomeKit (No Response) and nothing is sent to the panel."
+            },
+            "send_command_without_login_ok": {
+                "type": "boolean",
+                "title": "Send the command once even if the login reply is missing",
+                "default": false,
+                "description": "Off: on the tested panel a command without the login OK gets ERROR."
+            },
+            "status_poll": {
+                "type": "boolean",
+                "title": "Read state with ASTATUS (heartbeat)",
+                "default": true
+            },
+            "status_poll_interval": {
+                "type": "number",
+                "title": "ASTATUS interval (s)",
+                "default": 60
+            },
+            "status_max_missed": {
+                "type": "integer",
+                "title": "Unanswered ASTATUS before reconnecting",
+                "default": 2
+            },
+            "zone_triggers_alarm": {
+                "type": "boolean",
+                "title": "Show Triggered when a zone of an armed area goes active",
+                "default": true
+            },
+            "zone_trigger_grace": {
+                "type": "number",
+                "title": "Seconds to wait for the panel to report entry before showing Triggered",
+                "default": 5
+            },
+            "exit_max_seconds": {
+                "type": "number",
+                "title": "Longest exit delay (s)",
+                "default": 300
+            },
+            "show_armed_on_accept": {
+                "type": "boolean",
+                "title": "Show Away as soon as the panel OKs an arm from HomeKit",
+                "default": true,
+                "description": "ASTATUS corrects Home (and an alert goes out) if the area is still disarmed after the grace time below."
+            },
+            "optimistic_grace_seconds": {
+                "type": "number",
+                "title": "Grace before ASTATUS may correct an optimistic Away (s)",
+                "default": 60
+            },
+            "arm_confirm_seconds": {
+                "type": "number",
+                "title": "Alert if an accepted arm is not reported armed within (s)",
+                "default": 300
+            },
+            "alert_command": {
+                "type": "string",
+                "title": "Alert command",
+                "description": "Shell command run on failures; the message is $1, $TEXECOM_ALERT and stdin. Unset or empty = alerts off. Example: the bundled bin/texecom-alert (Telegram Bot API; set TEXECOM_TELEGRAM_BOT_TOKEN and TEXECOM_TELEGRAM_CHAT_ID in the Homebridge environment)."
+            },
+            "alert_min_interval": {
+                "type": "number",
+                "title": "Do not repeat an identical alert within (s)",
+                "default": 30
+            },
+            "alert_after_offline_minutes": {
+                "type": "number",
+                "title": "Alert when the panel has been unreachable for (min), 0 = never",
+                "default": 10
+            },
+            "state_alert_tries": {
+                "type": "integer",
+                "title": "ASTATUS failures before alerting that the state is unknown",
+                "default": 2
+            },
+            "unknown_after_reconnect": {
+                "type": "boolean",
+                "title": "Treat the state as unknown (No Response) after a reconnect until the panel answers",
+                "default": true
+            }
+        },
+        "required": true
+    }
+}

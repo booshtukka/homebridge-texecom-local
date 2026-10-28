@@ -1,0 +1,28 @@
+#!/bin/sh
+# Example alert command for the Texecom plugin: sends the message with the
+# Telegram Bot API. Use it with "alert_command": true (or its full path) and
+# set both variables in the Homebridge environment:
+#
+#   TEXECOM_TELEGRAM_BOT_TOKEN   bot token from @BotFather
+#   TEXECOM_TELEGRAM_CHAT_ID     chat to send to
+#
+#   texecom-alert "message"                              send
+#   TEXECOM_ALERT_DRY_RUN=1 texecom-alert "message"      print, send nothing
+#
+# Any other command works too: the plugin passes the message as $1, in
+# $TEXECOM_ALERT and on stdin, and treats exit 0 as sent.
+set -u
+MSG=${1:-${TEXECOM_ALERT:-}}
+[ -n "$MSG" ] || { echo "usage: texecom-alert <message>" >&2; exit 2; }
+TOKEN=${TEXECOM_TELEGRAM_BOT_TOKEN:-}
+CHAT=${TEXECOM_TELEGRAM_CHAT_ID:-}
+if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
+  echo "texecom-alert: set TEXECOM_TELEGRAM_BOT_TOKEN and TEXECOM_TELEGRAM_CHAT_ID" >&2
+  exit 2
+fi
+if [ "${TEXECOM_ALERT_DRY_RUN:-0}" = "1" ]; then
+  printf 'would send to chat %s: %s\n' "$CHAT" "$MSG"
+  exit 0
+fi
+curl -fsS --max-time 20 "https://api.telegram.org/bot$TOKEN/sendMessage" \
+  --data-urlencode "chat_id=$CHAT" --data-urlencode "text=$MSG" >/dev/null
